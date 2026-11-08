@@ -2,11 +2,11 @@ name: Crear programa para Windows
 
 # Se ejecuta:
 #  - a mano desde la pestaña "Actions" de GitHub (botón "Run workflow"), o
-#  - al publicar una etiqueta de versión (p. ej. v1.0.0): entonces además crea una "Release" con el .zip.
+#  - al publicar una Release / etiqueta de versión (p. ej. 0.0.2 o v1.1.0): además añade el .zip a la Release.
 on:
   workflow_dispatch:
   push:
-    tags: ["v*"]
+    tags: ["*"]
 
 permissions:
   contents: write
