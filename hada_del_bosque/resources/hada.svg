@@ -14,8 +14,8 @@
       <stop offset="1" stop-color="#2f7a3a"/>
     </linearGradient>
     <linearGradient id="hair" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#a0612f"/>
-      <stop offset="1" stop-color="#6e3d1c"/>
+      <stop offset="0" stop-color="#fbe08a"/>
+      <stop offset="1" stop-color="#d9a640"/>
     </linearGradient>
     <clipPath id="circ"><circle cx="256" cy="256" r="244"/></clipPath>
   </defs>
@@ -43,6 +43,14 @@
   <g stroke="#9fd3e3" stroke-width="2" fill="none" opacity="0.9">
     <path d="M226 238 Q180 200 120 178"/>
     <path d="M286 238 Q332 200 392 178"/>
+  </g>
+
+  <!-- melena larga (detrás del cuerpo) -->
+  <path d="M182 196 Q174 106 256 100 Q338 106 330 196 Q342 252 336 296 Q346 334 326 352 Q318 332 306 340 Q312 300 298 252 L296 214 L216 214 Q200 300 206 340 Q194 332 186 352 Q166 334 176 296 Q170 252 182 196 Z"
+        fill="url(#hair)" stroke="#c99232" stroke-width="2"/>
+  <g stroke="#fff3c4" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.8">
+    <path d="M190 230 Q184 280 192 330"/>
+    <path d="M322 230 Q328 280 320 330"/>
   </g>
 
   <!-- piernas y botas -->
@@ -85,8 +93,6 @@
   <circle cx="208" cy="342" r="10" fill="#f3c9a8"/>
   <circle cx="304" cy="342" r="10" fill="#f3c9a8"/>
 
-  <!-- pelo (detrás) -->
-  <path d="M184 196 Q180 110 256 104 Q332 110 328 196 Q334 250 304 262 L296 214 L216 214 L208 262 Q178 250 184 196 Z" fill="url(#hair)"/>
   <!-- cara -->
   <circle cx="256" cy="186" r="58" fill="#f6d3b6"/>
   <!-- orejas puntiagudas -->
@@ -94,6 +100,7 @@
   <path d="M312 182 L336 164 L310 202 Z" fill="#f3c9a8"/>
   <!-- flequillo -->
   <path d="M196 176 Q200 120 256 122 Q312 120 316 176 Q292 150 268 156 Q254 138 236 156 Q216 150 196 176 Z" fill="url(#hair)"/>
+  <path d="M220 146 Q240 134 262 140" stroke="#fff3c4" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.8"/>
   <!-- corona de hojas y flor -->
   <g>
     <path d="M200 140 q10 -22 30 -18 q-8 18 -30 18 z" fill="#4f9a46"/>
