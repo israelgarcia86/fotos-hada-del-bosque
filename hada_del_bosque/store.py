@@ -71,6 +71,18 @@ class Store:
         s.rebuild_index()
         return s, is_new
 
+    @classmethod
+    def reset(cls, root: Path) -> Path | None:
+        """Aparta el fichero de progreso (no se borra: se renombra como copia) para empezar de cero."""
+        path = Path(root) / STATE_FILENAME
+        if not path.exists():
+            return None
+        ts = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
+        backup = path.with_name(f"hada_del_bosque.reiniciado-{ts}.json")
+        os.replace(path, backup)
+        path.with_suffix(".json.bak").unlink(missing_ok=True)
+        return backup
+
     def save(self) -> None:
         self.data["app_version"] = VERSION
         self.data["saved"] = dt.datetime.now().isoformat(timespec="seconds")
@@ -204,16 +216,36 @@ class Store:
     def find_category(self, year: int, month: int, name: str) -> str | None:
         key = name.strip().casefold()
         for cid, c in self.categories.items():
+            if c.get("nocat"):
+                continue
             if c["year"] == int(year) and c["month"] == int(month) and c["name"].casefold() == key:
                 return cid
         return None
+
+    def find_nocat(self, year: int, month: int) -> str | None:
+        for cid, c in self.categories.items():
+            if c.get("nocat") and c["year"] == int(year) and c["month"] == int(month):
+                return cid
+        return None
+
+    def nocat(self, year: int, month: int) -> str:
+        """Categoría especial «sin categoría» de un mes: las fotos van directamente a la carpeta del mes."""
+        cid = self.find_nocat(year, month)
+        if cid:
+            return cid
+        cid = f"c{self.data['next_cat']}"
+        self.data["next_cat"] += 1
+        self.categories[cid] = {"year": int(year), "month": int(month), "name": "", "nocat": True,
+                                "origin": "mes", "created": dt.datetime.now().isoformat(timespec="seconds")}
+        return cid
 
     def category_label(self, cid: str | None) -> str:
         from . import month_name
         c = self.categories.get(cid or "")
         if not c:
             return "—"
-        return f"{c['year']} · {c['month']:02d} {month_name(c['month'])} — {c['name']}"
+        name = "(sin categoría)" if c.get("nocat") else c["name"]
+        return f"{c['year']} · {c['month']:02d} {month_name(c['month'])} — {name}"
 
     def category_usage(self) -> Counter:
         return Counter(it["category"] for it in self.items.values()

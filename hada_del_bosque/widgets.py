@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections import OrderedDict
 from pathlib import Path
 
-from PySide6.QtCore import QObject, QRunnable, QRectF, Qt, QThreadPool, QUrl, Signal
-from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QPushButton, QSizePolicy, QSlider,
+from PySide6.QtCore import QObject, QRunnable, QRectF, Qt, QThreadPool, QTimer, QUrl, Signal
+from PySide6.QtGui import QColor, QFont, QImage, QPainter, QPixmap, QPolygonF
+from PySide6.QtCore import QPointF
+from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QPushButton, QSizePolicy, QSlider,
                                QVBoxLayout, QWidget)
 
 from . import month_name
@@ -246,3 +247,149 @@ class VideoView(QWidget):
             self.error_label.adjustSize()
             self.error_label.move(10, 10)
             self.error_label.show()
+
+
+# ------------------------------------------------------------------ miniaturas de vídeo
+class VideoThumbnailer(QObject):
+    """Saca un fotograma de cada vídeo (uno detrás de otro) con Qt Multimedia."""
+
+    ready = Signal(str, object)  # clave, QImage|None
+
+    def __init__(self, parent=None, size=480):
+        super().__init__(parent)
+        self.size = size
+        self.cache: dict[str, QImage | None] = {}
+        self.queue: list[tuple[str, Path]] = []
+        self.busy: str | None = None
+        self.available = False
+        try:
+            from PySide6.QtMultimedia import QMediaPlayer, QVideoSink
+
+            self.player = QMediaPlayer(self)
+            self.sink = QVideoSink(self)
+            self.player.setVideoSink(self.sink)
+            self.sink.videoFrameChanged.connect(self._frame)
+            self.player.errorOccurred.connect(lambda *a: self.busy and self._done(None))
+            self.available = True
+        except Exception:  # noqa: BLE001
+            pass
+        self.timer = QTimer(self)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(lambda: self.busy and self._done(None))
+
+    def request(self, key: str, path: Path):
+        if key in self.cache:
+            return self.cache[key]
+        if self.available and key != self.busy and all(k != key for k, _ in self.queue):
+            self.queue.append((key, path))
+            self._next()
+        return None
+
+    def cancel_pending(self):
+        self.queue.clear()
+
+    def _next(self):
+        if self.busy or not self.queue:
+            return
+        self.busy, path = self.queue.pop(0)
+        self._frames = 0
+        self.player.setSource(QUrl.fromLocalFile(str(path)))
+        self.player.play()
+        self.timer.start(6000)
+
+    def _frame(self, frame):
+        if not self.busy or not frame.isValid():
+            return
+        self._frames += 1
+        if frame.startTime() < 400_000 and self._frames < 12:  # evitar el primer fotograma (a menudo negro)
+            return
+        img = frame.toImage()
+        if img.isNull():
+            return
+        self._done(img.scaled(self.size, self.size, Qt.AspectRatioMode.KeepAspectRatio,
+                              Qt.TransformationMode.SmoothTransformation))
+
+    def _done(self, img):
+        key = self.busy
+        self.busy = None
+        self.timer.stop()
+        self.cache[key] = img
+        QTimer.singleShot(0, self._reset_and_next)
+        self.ready.emit(key, img)
+
+    def _reset_and_next(self):
+        self.player.stop()
+        self.player.setSource(QUrl())
+        self._next()
+
+
+def with_play_icon(pm: QPixmap) -> QPixmap:
+    """Dibuja un triángulo de «play» sobre una miniatura."""
+    out = QPixmap(pm)
+    p = QPainter(out)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    w, h = out.width() / out.devicePixelRatio(), out.height() / out.devicePixelRatio()
+    r = min(w, h) * 0.16
+    cx, cy = w / 2, h / 2
+    p.setPen(Qt.PenStyle.NoPen)
+    p.setBrush(QColor(0, 0, 0, 150))
+    p.drawEllipse(QPointF(cx, cy), r, r)
+    p.setBrush(QColor(255, 255, 255, 235))
+    p.drawPolygon(QPolygonF([QPointF(cx - r * 0.35, cy - r * 0.5), QPointF(cx - r * 0.35, cy + r * 0.5),
+                             QPointF(cx + r * 0.55, cy)]))
+    p.end()
+    return out
+
+
+class ClickLabel(QLabel):
+    clicked = Signal()
+
+    def __init__(self, *a):
+        super().__init__(*a)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def mousePressEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(e)
+
+
+class PreviewDialog(QDialog):
+    """Vista ampliada de una foto o reproducción de un vídeo (Esc para cerrar)."""
+
+    def __init__(self, path: Path, is_video: bool, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(path.name)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        self.video = None
+        if is_video:
+            self.video = VideoView(self)
+            lay.addWidget(self.video)
+            self.video.play(path)
+        else:
+            view = ImageView(self)
+            lay.addWidget(view)
+            try:
+                view.set_image(pil_to_qimage(load_image(path, 2400, 2400)))
+            except Exception as e:  # noqa: BLE001
+                view.set_image(None, f"No se puede mostrar:\n{e}")
+        scr = self.screen().availableGeometry() if self.screen() else None
+        if scr:
+            self.resize(int(scr.width() * 0.7), int(scr.height() * 0.75))
+        else:
+            self.resize(1000, 700)
+
+    def keyPressEvent(self, e):
+        if self.video and e.key() == Qt.Key.Key_Space:
+            self.video.toggle_play()
+            return
+        if self.video and e.key() == Qt.Key.Key_M:
+            self.video.toggle_mute()
+            return
+        super().keyPressEvent(e)
+
+    def done(self, r):
+        if self.video:
+            self.video.stop()
+        super().done(r)

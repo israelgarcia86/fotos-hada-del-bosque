@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import (QAbstractItemView, QDialog, QDialogButtonBox, QFileDialog,
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDialog, QDialogButtonBox, QFileDialog,
                                QFormLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
                                QListWidget, QListWidgetItem, QMessageBox, QProgressDialog,
                                QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout)
@@ -46,6 +46,9 @@ class WelcomeDialog(QDialog):
         txt.setWordWrap(True)
         col.addWidget(txt)
         col.addStretch(1)
+        self.chk_reset = QCheckBox("Empezar de cero (descartar el trabajo guardado en esa carpeta)")
+        self.chk_reset.setToolTip("El progreso anterior no se borra: se guarda como copia con otro nombre.")
+        col.addWidget(self.chk_reset)
         b = QPushButton("📂  Elegir carpeta…")
         b.setObjectName("primary")
         b.clicked.connect(self.pick)
@@ -66,6 +69,7 @@ class WelcomeDialog(QDialog):
 
     def _done(self, d):
         self.chosen = d
+        self.reset = self.chk_reset.isChecked()
         self.accept()
 
 
@@ -153,10 +157,10 @@ class OtherCategoryDialog(QDialog):
         best, best_dist = None, None
         for cid, c in cats:
             n = usage.get(cid, 0)
-            it = QListWidgetItem(f"{c['year']} · {c['month']:02d} {month_name(c['month'])} — {c['name']}"
-                                 + (f"   ({n} fotos)" if n else ""))
+            it = QListWidgetItem(store.category_label(cid) + (f"   ({n} fotos)" if n else ""))
             it.setData(Qt.ItemDataRole.UserRole, cid)
-            it.setData(Qt.ItemDataRole.UserRole + 1, norm(f"{c['name']} {c['year']} {month_name(c['month'])} {c['month']:02d}"))
+            name = "sin categoria" if c.get("nocat") else c["name"]
+            it.setData(Qt.ItemDataRole.UserRole + 1, norm(f"{name} {c['year']} {month_name(c['month'])} {c['month']:02d}"))
             self.list.addItem(it)
             if ref_date is not None:
                 dist = abs(month_index(c["year"], c["month"]) - month_index(ref_date.year, ref_date.month))
@@ -225,7 +229,8 @@ class CategoryManagerDialog(QDialog):
         self.table.cellChanged.connect(self._edited)
         self.resize(760, 560)
 
-    ORIGINS = {"carpeta": "carpeta de origen", "destino": "carpeta destino", "nueva": "creada a mano"}
+    ORIGINS = {"carpeta": "carpeta de origen", "destino": "carpeta destino", "nueva": "creada a mano",
+               "mes": "solo el mes"}
 
     def _fill(self):
         self._loading = True
@@ -233,12 +238,13 @@ class CategoryManagerDialog(QDialog):
         cats = sorted(self.store.categories.items(), key=lambda kv: (kv[1]["year"], kv[1]["month"], kv[1]["name"].casefold()))
         self.table.setRowCount(len(cats))
         for r, (cid, c) in enumerate(cats):
-            vals = [str(c["year"]), f"{c['month']:02d} {month_name(c['month'])}", c["name"], str(usage.get(cid, 0)),
+            vals = [str(c["year"]), f"{c['month']:02d} {month_name(c['month'])}",
+                    "(sin categoría)" if c.get("nocat") else c["name"], str(usage.get(cid, 0)),
                     self.ORIGINS.get(c.get("origin"), c.get("origin", ""))]
             for col, v in enumerate(vals):
                 it = QTableWidgetItem(v)
                 it.setData(Qt.ItemDataRole.UserRole, cid)
-                if col >= 3:
+                if col >= 3 or (col == 2 and c.get("nocat")):
                     it.setFlags(it.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.table.setItem(r, col, it)
         self._loading = False
@@ -266,7 +272,7 @@ class CategoryManagerDialog(QDialog):
             QMessageBox.warning(self, APP_NAME, "Valor no válido.")
             self._fill()
             return
-        other = self.store.find_category(y, m, name)
+        other = self.store.find_nocat(y, m) if c.get("nocat") else self.store.find_category(y, m, name)
         if other and other != cid:
             QMessageBox.warning(self, APP_NAME, "Ya existe una categoría con ese año, mes y nombre.")
             self._fill()

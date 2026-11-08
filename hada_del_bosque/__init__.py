@@ -4,7 +4,7 @@ from pathlib import Path
 
 APP_NAME = "Fotos del hada del bosque"
 APP_ID = "FotosDelHadaDelBosque"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 STATE_FILENAME = "hada_del_bosque.json"
 
 RESOURCES = Path(__file__).resolve().parent / "resources"

@@ -11,7 +11,7 @@ from PySide6.QtCore import QSettings, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
-from . import APP_ID, APP_NAME, RESOURCES, VERSION
+from . import APP_ID, APP_NAME, RESOURCES, STATE_FILENAME, VERSION
 
 
 def selftest(out: str | None) -> int:
@@ -40,8 +40,22 @@ def selftest(out: str | None) -> int:
         from hachoir.metadata import extractMetadata  # noqa: F401
         lines.append("hachoir OK")
         v = VideoView()
-        lines.append(f"Vídeo: {'OK' if v.available else 'NO DISPONIBLE'}")
+        lines.append(f"Reproductor de vídeo: {'OK' if v.available else 'NO DISPONIBLE'}")
         ok = ok and v.available
+        # Decodificar de verdad un fotograma de un vídeo H.264 de prueba
+        from PySide6.QtCore import QEventLoop, QTimer
+        from .widgets import VideoThumbnailer
+        th = VideoThumbnailer(size=64)
+        loop = QEventLoop()
+        got = {}
+        th.ready.connect(lambda k, img: (got.__setitem__("img", img), loop.quit()))
+        QTimer.singleShot(15000, loop.quit)
+        th.request("prueba", RESOURCES / "prueba.mp4")
+        loop.exec()
+        img = got.get("img")
+        dec_ok = img is not None and not img.isNull()
+        lines.append(f"Decodificar vídeo H.264: {'OK ' + str(img.width()) + 'x' + str(img.height()) if dec_ok else 'FALLO'}")
+        ok = ok and dec_ok
         lines.append("Icono: " + ("OK" if (RESOURCES / "hada.png").exists() else "FALTA"))
         ok = ok and (RESOURCES / "hada.png").exists()
         del app
@@ -82,14 +96,28 @@ def main(argv: list[str] | None = None) -> int:
     settings = QSettings(APP_ID, APP_ID)
     windows: list = []
 
-    def open_folder(initial: str | None = None) -> bool:
+    def open_folder(initial: str | None = None, reset: bool = False) -> bool:
         root = initial
         if not root:
             dlg = WelcomeDialog(settings.value("last_folder", "", str) or None)
             if not dlg.exec() or not dlg.chosen:
                 return False
-            root = dlg.chosen
+            root, reset = dlg.chosen, dlg.reset
         rootp = Path(root).resolve()
+        if reset and (rootp / STATE_FILENAME).exists():
+            if not initial:  # desde la bienvenida: confirmar
+                r = QMessageBox.warning(None, APP_NAME,
+                                        "Has marcado «Empezar de cero».\n\nSe descartará el trabajo guardado en esa carpeta "
+                                        "(se conserva una copia del fichero de progreso). ¿Continuar?",
+                                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                                        QMessageBox.StandardButton.Cancel)
+                if r != QMessageBox.StandardButton.Yes:
+                    return open_folder()
+            try:
+                Store.reset(rootp)
+            except OSError as e:
+                QMessageBox.critical(None, APP_NAME, f"No se pudo reiniciar:\n{e}")
+                return False
         try:
             store, is_new = Store.open(rootp)
             if is_new:
@@ -111,7 +139,12 @@ def main(argv: list[str] | None = None) -> int:
             if open_folder():
                 win.close()
 
+        def restart():  # la ventana vieja no guarda (no_save) y se cierra después de abrir la nueva
+            if open_folder(str(rootp), reset=True):
+                win.close()
+
         win.open_other.connect(other)
+        win.restart.connect(restart)
         windows.append(win)
         win.show()
         QTimer.singleShot(50, win.begin)

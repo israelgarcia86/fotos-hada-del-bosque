@@ -17,7 +17,8 @@ from . import APP_NAME, RESOURCES, month_name
 from .dates import SOURCE_LABELS, parse_iso
 from .dialogs import (CategoryManagerDialog, CopyDialog, OtherCategoryDialog, about, run_scan)
 from .store import Store
-from .widgets import ImageLoader, ImageView, VideoView, fmt_date
+from .widgets import (ClickLabel, ImageLoader, ImageView, PreviewDialog, VideoThumbnailer, VideoView,
+                      fmt_date, with_play_icon)
 
 STYLE = """
 QWidget { font-size: 10.5pt; }
@@ -131,8 +132,13 @@ class ReviewPage(QWidget):
         self.grid = QGridLayout(self.grid_host)
         self.grid.setSpacing(8)
         self.thumbs: list[QLabel] = []
+        self.thumb_rel: list[str | None] = [None] * 8
+        self.vthumbs = VideoThumbnailer(self, self.THUMB * 2)
+        self.vthumbs.ready.connect(self._vthumb_ready)
         for i in range(8):
-            t = QLabel()
+            t = ClickLabel()
+            t.setToolTip("Clic para ver en grande / reproducir el vídeo")
+            t.clicked.connect(lambda i=i: self.preview(i))
             t.setFixedSize(self.THUMB, int(self.THUMB * 0.75))
             t.setAlignment(Qt.AlignmentFlag.AlignCenter)
             t.setStyleSheet("background:#1c241d; color:#cfe0c9; border-radius:6px;")
@@ -223,16 +229,22 @@ class ReviewPage(QWidget):
         _repolish(self.b_yes)
         _repolish(self.b_no)
         self._thumb_keys = {}
+        self.vthumbs.cancel_pending()
         imgs = [r for r in files if self.store.items[r].get("kind") in ("image", "raw")]
         vids = [r for r in files if self.store.items[r].get("kind") == "video"]
-        show = (imgs[:8] + vids)[:8]
+        show = (imgs[:8 - min(len(vids), 2)] + vids)[:8]  # hasta 2 vídeos en el mosaico
         for i, t in enumerate(self.thumbs):
             t.clear()
             t.setVisible(i < len(show))
+            self.thumb_rel[i] = show[i] if i < len(show) else None
             if i < len(show):
                 r = show[i]
                 if self.store.items[r].get("kind") == "video":
                     t.setText("🎬\n" + r.rsplit("/", 1)[-1])
+                    self._thumb_keys[r] = t
+                    got = self.vthumbs.request(r, self.store.abs_path(r))
+                    if got is not None:
+                        self._vthumb_ready(r, got)
                     continue
                 t.setText("…")
                 self._thumb_keys[r] = t
@@ -252,6 +264,22 @@ class ReviewPage(QWidget):
                                            Qt.TransformationMode.SmoothTransformation)
         pm.setDevicePixelRatio(t.devicePixelRatioF())
         t.setPixmap(pm)
+
+    def _vthumb_ready(self, key, img):
+        t = getattr(self, "_thumb_keys", {}).get(key)
+        if t is None or img is None:
+            return
+        pm = QPixmap.fromImage(img).scaled(t.size() * t.devicePixelRatioF(), Qt.AspectRatioMode.KeepAspectRatio,
+                                           Qt.TransformationMode.SmoothTransformation)
+        pm.setDevicePixelRatio(t.devicePixelRatioF())
+        t.setPixmap(with_play_icon(pm))
+
+    def preview(self, i: int):
+        rel = self.thumb_rel[i]
+        if not rel:
+            return
+        PreviewDialog(self.store.abs_path(rel), self.store.items[rel].get("kind") == "video", self).exec()
+        self.setFocus()
 
     def decide(self, yes: bool):
         if not self.folders:
@@ -399,8 +427,12 @@ class ClassifyPage(QWidget):
         b_ok.clicked.connect(self.create_category)
         b_cancel = QPushButton("Cancelar  (Esc)")
         b_cancel.clicked.connect(self.hide_form)
+        b_nocat = QPushButton("📅 Solo el mes, sin categoría")
+        b_nocat.setToolTip("Asignar a este año y mes, sin carpeta de categoría")
+        b_nocat.clicked.connect(self.assign_form_nocat)
         fl.addWidget(b_cancel, 2, 0, 1, 2)
         fl.addWidget(b_ok, 2, 2, 1, 2)
+        fl.addWidget(b_nocat, 3, 0, 1, 4)
         self.form.hide()
         pl.addWidget(self.form)
 
@@ -567,6 +599,9 @@ class ClassifyPage(QWidget):
         it = self.store.items[rel]
         main, recent = self.store.suggestions(rel, self.last_used)
         d = parse_iso(it.get("date"))
+        nocat_cur = self.store.find_nocat(d.year, d.month) if d else None
+        main = [c for c in main if c != nocat_cur]
+        recent = [c for c in recent if c != nocat_cur]
 
         def section(text):
             lab = QLabel(text)
@@ -577,7 +612,8 @@ class ClassifyPage(QWidget):
             num = len(self.cat_buttons) + 1
             key = str(num % 10) if num <= 10 else " "
             c = self.store.categories[cid]
-            b = QPushButton(f"[{key}]   {c['name']}    ·  {month_name(c['month'], False)} {c['year']}")
+            name = "📅 Sin categoría" if c.get("nocat") else c["name"]
+            b = QPushButton(f"[{key}]   {name}    ·  {month_name(c['month'], False)} {c['year']}")
             b.setProperty("cat", "true")
             state = ""
             if it.get("status") == "assigned" and it.get("category") == cid:
@@ -591,6 +627,14 @@ class ClassifyPage(QWidget):
             self.cat_buttons.append((b, cid))
 
         if d:
+            b = QPushButton(f"[S]   📅 Sin categoría  ·  solo {month_name(d.month, False)} de {d.year}")
+            b.setToolTip("La foto irá directamente a la carpeta del mes, sin carpeta de categoría")
+            b.setProperty("cat", "true")
+            b.setProperty("state", "assigned" if it.get("status") == "assigned" and nocat_cur
+                          and it.get("category") == nocat_cur else "")
+            b.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            b.clicked.connect(self.assign_nocat)
+            self.cat_lay.addWidget(b)
             prev_m = (d.replace(day=1) - dt.timedelta(days=1))
             next_m = (d.replace(day=28) + dt.timedelta(days=4))
             if prev_m.year == next_m.year:
@@ -624,6 +668,21 @@ class ClassifyPage(QWidget):
         self.last_used.insert(0, cid)
         del self.last_used[8:]
         self._advance()
+
+    def assign_nocat(self):
+        """Asigna la foto a su mes, sin categoría."""
+        if not self.rel:
+            return
+        d = parse_iso(self.store.items[self.rel].get("date"))
+        if d is None:  # sin fecha: hay que elegir el mes en el formulario
+            self.show_form()
+            return
+        self.assign(self.store.nocat(d.year, d.month))
+
+    def assign_form_nocat(self):
+        cid = self.store.nocat(self.f_year.value(), self.f_month.month())
+        self.form.hide()
+        self.assign(cid)
 
     def discard(self):
         if self.rel:
@@ -713,6 +772,7 @@ class ClassifyPage(QWidget):
             Qt.Key.Key_P: self.next_pending,
             Qt.Key.Key_O: self.other_category,
             Qt.Key.Key_N: self.show_form,
+            Qt.Key.Key_S: self.assign_nocat,
             Qt.Key.Key_D: self.discard,
             Qt.Key.Key_Delete: self.clear,
             Qt.Key.Key_Backspace: self.clear,
@@ -730,6 +790,7 @@ class ClassifyPage(QWidget):
 # ====================================================================== ventana
 class MainWindow(QMainWindow):
     open_other = Signal()
+    restart = Signal()
 
     def __init__(self, store: Store, is_new: bool):
         super().__init__()
@@ -773,6 +834,7 @@ class MainWindow(QMainWindow):
         m = mb.addMenu("&Archivo")
         self._act(m, "Abrir otra carpeta…", self.open_other.emit, QKeySequence.StandardKey.Open)
         self._act(m, "Volver a buscar fotos nuevas en la carpeta", self.rescan)
+        self._act(m, "Reiniciar todo el trabajo de esta carpeta…", self.ask_restart)
         m.addSeparator()
         self._act(m, "Salir", self.close, QKeySequence.StandardKey.Quit)
         m = mb.addMenu("&Ver")
@@ -820,6 +882,18 @@ class MainWindow(QMainWindow):
         self.pages.setCurrentWidget(self.classify)
         self.classify.start()
 
+    def ask_restart(self):
+        st = self.store.stats()
+        r = QMessageBox.warning(
+            self, APP_NAME,
+            f"¿Empezar de cero en esta carpeta?\n\nSe descartan las categorías y las {st['assigned']} fotos clasificadas "
+            "(útil si has estado haciendo pruebas).\n\nNo se borra ninguna foto, y el progreso actual se guarda "
+            "como copia (hada_del_bosque.reiniciado-…json) por si acaso.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel, QMessageBox.StandardButton.Cancel)
+        if r == QMessageBox.StandardButton.Yes:
+            self.no_save = True
+            self.restart.emit()
+
     def rescan(self):
         run_scan(self.store, self)
         if self.pages.currentWidget() is self.classify:
@@ -865,12 +939,17 @@ class MainWindow(QMainWindow):
             "<b>S</b> sí, es una agrupación · <b>N</b> no · <b>← →</b> anterior / siguiente<br>"
             "<h3>Paso 2 · Fotos</h3>"
             "<b>1 … 9, 0</b> asignar la categoría con ese número (y pasar a la siguiente)<br>"
+            "<b>S</b> sin categoría (solo el mes de la foto)<br>"
             "<b>N</b> nueva categoría · <b>O</b> otra categoría (buscar)<br>"
             "<b>D</b> descartar · <b>Supr</b> quitar clasificación<br>"
             "<b>←  →</b> anterior / siguiente · <b>P</b> siguiente pendiente · <b>Inicio / Fin</b><br>"
             "<b>Espacio</b> pausa del vídeo · <b>M</b> sonido · <b>A</b> abrir con el programa del sistema"))
 
     def closeEvent(self, e):
+        if getattr(self, "no_save", False):
+            self.classify.video.stop()
+            super().closeEvent(e)
+            return
         try:
             self.classify.video.stop()
             if self.classify.order:

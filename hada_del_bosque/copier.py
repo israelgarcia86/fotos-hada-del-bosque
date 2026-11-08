@@ -68,6 +68,11 @@ def category_dir(store: Store, dest: Path, cid: str, template: str, create: bool
     ydir = _find_child(dest, lambda n: year_from_folder_name(n) == c["year"]) or dest / str(c["year"])
     mdir = (_find_child(ydir, lambda n: month_from_folder_name(n) == c["month"]) if ydir.exists() else None) \
         or ydir / safe_folder_name(render_month(template, c["month"]))
+    if c.get("nocat"):  # sin categoría: directamente en la carpeta del mes
+        if create:
+            mdir.mkdir(parents=True, exist_ok=True)
+            c["dest_rel"] = to_rel(dest, mdir)
+        return mdir
     key = c["name"].strip().casefold()
     cdir = (_find_child(mdir, lambda n: n.strip().casefold() == key) if mdir.exists() else None) \
         or mdir / safe_folder_name(c["name"])
