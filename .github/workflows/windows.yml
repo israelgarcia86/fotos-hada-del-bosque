@@ -1,0 +1,60 @@
+name: Crear programa para Windows
+
+# Se ejecuta:
+#  - a mano desde la pestaña "Actions" de GitHub (botón "Run workflow"), o
+#  - al publicar una etiqueta de versión (p. ej. v1.0.0): entonces además crea una "Release" con el .zip.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Crear el ejecutable
+        run: >
+          pyinstaller --noconfirm --clean --windowed
+          --name "FotosDelHadaDelBosque"
+          --icon hada_del_bosque/resources/hada.ico
+          --add-data "hada_del_bosque/resources;hada_del_bosque/resources"
+          --collect-all rawpy
+          --collect-all pillow_heif
+          --collect-submodules hachoir
+          run.py
+
+      - name: Comprobar que el ejecutable funciona
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "dist\FotosDelHadaDelBosque\FotosDelHadaDelBosque.exe" -ArgumentList "--selftest","selftest.txt" -Wait -PassThru
+          Get-Content selftest.txt
+          if ($p.ExitCode -ne 0) { throw "La comprobación ha fallado" }
+
+      - name: Empaquetar en .zip
+        shell: pwsh
+        run: Compress-Archive -Path "dist\FotosDelHadaDelBosque" -DestinationPath "FotosDelHadaDelBosque-Windows.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FotosDelHadaDelBosque-Windows
+          path: FotosDelHadaDelBosque-Windows.zip
+
+      - name: Publicar versión
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: FotosDelHadaDelBosque-Windows.zip
