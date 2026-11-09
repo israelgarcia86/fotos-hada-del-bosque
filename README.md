@@ -1,6 +1,14 @@
 <p align="center"><img src="hada_del_bosque/resources/hada.png" width="180" alt="Hada del bosque con cámara"></p>
 
+<p align="center">
+  <a href="https://github.com/israelgarcia86/fotos-hada-del-bosque/releases/latest/download/FotosDelHadaDelBosque-Windows.zip"><b>⬇️ Descargar para Windows</b></a>
+  ·
+  <a href="https://github.com/israelgarcia86/fotos-hada-del-bosque/releases/latest">Todas las versiones</a>
+</p>
+
 # Fotos del hada del bosque
+
+> **Para usarlo en Windows:** descarga el zip, descomprímelo y ejecuta `FotosDelHadaDelBosque.exe`. No hace falta instalar nada. Si Windows muestra un aviso azul, pulsa *Más información → Ejecutar de todas formas*.
 
 Aplicación de escritorio (Windows y Linux) para **clasificar fotos y vídeos por año, mes y categoría** y copiarlos a una carpeta ya ordenada con la estructura:
 
