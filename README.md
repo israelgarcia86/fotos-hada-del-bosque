@@ -3,80 +3,163 @@
 <p align="center">
   <a href="https://github.com/israelgarcia86/fotos-hada-del-bosque/releases/latest/download/FotosDelHadaDelBosque-Windows.zip"><b>⬇️ Descargar para Windows</b></a>
   ·
+  <a href="#instalación-en-linux"><b>🐧 Instalar en Linux</b></a>
+  ·
   <a href="https://github.com/israelgarcia86/fotos-hada-del-bosque/releases/latest">Todas las versiones</a>
 </p>
 
 # Fotos del hada del bosque
 
-> **Para usarlo en Windows:** descarga el zip, descomprímelo y ejecuta `FotosDelHadaDelBosque.exe`. No hace falta instalar nada. Si Windows muestra un aviso azul, pulsa *Más información → Ejecutar de todas formas*.
-
-Aplicación de escritorio (Windows y Linux) para **clasificar fotos y vídeos por año, mes y categoría** y copiarlos a una carpeta ya ordenada con la estructura:
+Programa para **ordenar tus fotos y vídeos por año, mes y categoría** y copiarlos a una carpeta ya ordenada, con esta estructura:
 
 ```
-DESTINO/
+Fotos ordenadas/
 └── 2023/
     └── 05 - Mayo/
-        └── Feria de Abril/
+        ├── Feria de Abril/
+        └── (fotos del mes sin categoría)
 ```
 
-## Cómo funciona
+Nunca mueve ni borra tus fotos: solo las **copia**.
 
-1. **Al abrir**, eliges la carpeta con las fotos que quieres ordenar (se recorren todas sus subcarpetas). La primera vez el programa te pregunta, de forma opcional, cuál es tu **carpeta destino** ya ordenada, para importar sus categorías (`Año/Mes/Categoría`).
-2. **Paso 1: revisión de carpetas** (solo la primera vez). Para cada carpeta que contiene fotos dices si es ya una **agrupación** (un evento o un viaje) o no (Descargas, WhatsApp Images…). Si es que sí, se crea una categoría con año, mes y nombre propuestos, que puedes cambiar. Haz clic en una miniatura para verla en grande o reproducir el vídeo.
-3. **Paso 2: foto a foto**, en orden de fecha. A la izquierda se ve la foto, o el vídeo, que se reproduce solo. A la derecha aparecen:
-   - el nombre, la carpeta, la **fecha estimada** y de dónde sale (EXIF, metadatos del vídeo, nombre del fichero o fecha del fichero), y los metadatos (cámara, dimensiones, exposición, GPS…);
-   - las categorías del **mes de la foto y de los meses anterior y siguiente**. Si la foto venía de una carpeta agrupada, su categoría aparece **resaltada en amarillo**: basta con pulsarla;
-   - las categorías **recientes**: las que ya has asignado a fotos con fecha cercana (±2 meses), aunque sean de otro mes. Así, una categoría que eliges con «Otra categoría» sigue apareciendo en las fotos de esas fechas;
-   - **Sin categoría**: la foto va directamente a la carpeta de su mes (`2023/05 - Mayo/`), sin carpeta de evento;
-   - **Otra categoría…** para buscar cualquier categoría, y **Nueva categoría** para crear una (año y mes sugeridos).
+## Instalación en Windows
 
-   Al pulsar una categoría, se pasa **directamente a la siguiente foto**. Con «Anterior» y «Siguiente» puedes volver para corregir; la categoría elegida aparece en verde.
-4. **Destino → Copiar las fotos clasificadas al destino…** las **copia**, sin mover ni borrar nada del origen. Reutiliza las carpetas de año, mes y categoría que ya existan, y no duplica un fichero que ya esté. El formato de las carpetas de mes nuevas se deduce de las que ya tienes; si no tienes ninguna, se usa `05 - Mayo`.
+1. Pulsa **[⬇️ Descargar para Windows](https://github.com/israelgarcia86/fotos-hada-del-bosque/releases/latest/download/FotosDelHadaDelBosque-Windows.zip)**.
+2. Busca el fichero descargado (`FotosDelHadaDelBosque-Windows.zip`), haz clic derecho sobre él y elige **Extraer todo…**. Puedes guardarlo, por ejemplo, en Documentos.
+3. Dentro de la carpeta extraída, haz doble clic en **`FotosDelHadaDelBosque.exe`**. No hace falta instalar nada más.
+4. La primera vez, Windows puede mostrar un aviso azul («Windows protegió su PC»), porque el programa no está firmado por una empresa. Pulsa **Más información → Ejecutar de todas formas**.
 
-### Progreso guardado
-Tras **cada** foto se actualiza el fichero `hada_del_bosque.json` dentro de la carpeta de fotos. Ahí están las categorías (año, mes y nombre), la categoría de cada foto, las fechas leídas y las copias hechas. Las rutas son relativas, así que funciona igual en Linux y en Windows. Si cierras el programa y vuelves a abrir la carpeta, sigues donde lo dejaste. Además se guarda una copia de seguridad, `hada_del_bosque.json.bak`.
+Para tener un acceso directo, haz clic derecho sobre `FotosDelHadaDelBosque.exe` → **Enviar a → Escritorio (crear acceso directo)**.
 
-Para **empezar de cero** (por ejemplo, después de hacer pruebas), marca *«Empezar de cero»* en la pantalla de bienvenida o usa **Archivo → Reiniciar todo el trabajo de esta carpeta…**. No se borra ninguna foto, y el progreso anterior se guarda como `hada_del_bosque.reiniciado-FECHA.json`.
+**Para actualizar** a una versión nueva, descárgala igual y sustituye la carpeta antigua. Tu trabajo no se pierde, porque se guarda junto a tus fotos.
+
+## Instalación en Linux
+
+En Linux el programa funciona con Python, que casi todas las distribuciones traen ya instalado.
+
+1. **Instala lo básico** (solo la primera vez). Abre una terminal y escribe:
+   - Ubuntu, Debian, Linux Mint:
+     ```bash
+     sudo apt install python3-venv libxcb-cursor0
+     ```
+   - Fedora:
+     ```bash
+     sudo dnf install python3 xcb-util-cursor
+     ```
+2. **Descarga el programa**: en [la última versión](https://github.com/israelgarcia86/fotos-hada-del-bosque/releases/latest), dentro de *Assets*, pulsa **Source code (zip)** y descomprímelo donde quieras.
+3. **Arráncalo** desde una terminal, dentro de la carpeta descomprimida:
+   ```bash
+   bash Hada_del_bosque_Linux.sh
+   ```
+   La primera vez instala sus componentes, lo que tarda unos minutos. Las siguientes veces arranca enseguida.
+
+**Para actualizar**, descarga la nueva versión y ejecuta `bash Hada_del_bosque_Linux.sh` en la carpeta nueva. La primera vez volverá a instalar los componentes.
+
+<details>
+<summary>Opcional: añadirlo al menú de aplicaciones</summary>
+
+Ejecuta esto **dentro de la carpeta del programa**:
+
+```bash
+cat > ~/.local/share/applications/hada-del-bosque.desktop <<EOF
+[Desktop Entry]
+Type=Application
+Name=Fotos del hada del bosque
+Exec=bash "$PWD/Hada_del_bosque_Linux.sh"
+Icon=$PWD/hada_del_bosque/resources/hada.png
+Terminal=false
+Categories=Graphics;Photography;
+EOF
+```
+
+Aparecerá en el menú como «Fotos del hada del bosque». La primera vez ábrelo desde la terminal, para que termine de instalarse.
+</details>
+
+## Cómo se usa
+
+1. **Elige la carpeta** con las fotos que quieres ordenar. Se revisan también todas sus subcarpetas.
+   La primera vez, el programa te pregunta (es opcional) dónde tienes tus fotos **ya ordenadas**. Así aprovecha las categorías que ya tienes.
+2. **Paso 1: revisión de carpetas.** Solo se hace la primera vez. Para cada carpeta dices si es ya un grupo de fotos (un viaje, una celebración…) pulsando **Sí**, o si no lo es (Descargas, WhatsApp Images…) pulsando **No**. Haz clic en una miniatura para verla en grande o reproducir el vídeo.
+3. **Paso 2: foto a foto**, ordenadas por fecha. A la izquierda ves la foto o el vídeo; a la derecha, su fecha y los botones de categoría:
+   - las categorías del **mes de la foto y de los meses de alrededor**. Si la foto venía de una carpeta agrupada, su categoría aparece **en amarillo**: basta con pulsarla;
+   - las categorías **recientes**: las que ya has usado en fotos de fechas cercanas (±2 meses), aunque sean de otro mes;
+   - **Sin categoría**: la foto va directamente a la carpeta de su mes;
+   - **Nueva categoría** para crear una, y **Otra categoría…** para buscar cualquier otra.
+
+   Al pulsar una categoría, se pasa **directamente a la siguiente foto**. Si te equivocas, vuelve con **Anterior**: la categoría elegida aparece en verde.
+4. Cuando quieras, en el menú **Destino → Copiar las fotos clasificadas al destino…** se copian las fotos a tu carpeta ordenada. Se aprovechan las carpetas de año, mes y categoría que ya existan, y no se duplica una foto que ya esté allí. Las carpetas de mes nuevas se nombran igual que las que ya tienes (por ejemplo `05 - Mayo`).
+
+### Tu trabajo se guarda solo
+Después de cada foto, el progreso se guarda en el fichero `hada_del_bosque.json`, dentro de tu carpeta de fotos. Si cierras el programa y vuelves a abrir la misma carpeta, sigues donde lo dejaste. Funciona igual en Windows y en Linux, así que puedes empezar en un ordenador y seguir en otro.
+
+Para **empezar de cero** (por ejemplo, después de hacer pruebas), marca **«Empezar de cero»** en la pantalla de inicio, o usa **Archivo → Reiniciar todo el trabajo de esta carpeta…**. No se borra ninguna foto, y el progreso anterior se guarda como copia (`hada_del_bosque.reiniciado-FECHA.json`).
 
 ### Atajos de teclado
+Con el teclado se va mucho más rápido:
+
 | Tecla | Acción |
 |---|---|
-| `1`…`9`, `0` | asignar la categoría con ese número |
+| `1` … `9`, `0` | elegir la categoría con ese número |
 | `S` | sin categoría (solo el mes de la foto) |
-| `N` | nueva categoría · `O` otra categoría |
-| `D` | descartar (no se copiará) · `Supr` quitar clasificación |
-| `←` `→` | anterior / siguiente · `P` siguiente pendiente |
-| `Espacio` | pausa del vídeo · `M` sonido (empieza silenciado) |
-| `A` | abrir con el programa del sistema |
-| En el paso 1: `S` / `N` | sí / no es una agrupación |
+| `N` | nueva categoría |
+| `O` | buscar otra categoría |
+| `D` | descartar la foto (no se copiará) |
+| `Supr` | quitar la clasificación |
+| `←` `→` | foto anterior / siguiente |
+| `P` | siguiente foto pendiente |
+| `Espacio` | pausar el vídeo · `M` activar el sonido |
+| `A` | abrir la foto con el programa del sistema |
+| `S` / `N` en el paso 1 | sí / no es un grupo de fotos |
 
-Formatos admitidos: JPG, PNG, HEIC/HEIF (iPhone), WebP, TIFF, GIF, BMP, RAW (CR2, CR3, NEF, ARW, DNG, ORF, RW2, RAF…) y vídeos MP4, MOV, AVI, MKV, 3GP, MTS, WMV, WebM…
+### Formatos
+Fotos JPG, PNG, HEIC (iPhone), WebP, TIFF, GIF, BMP y RAW de cámara (CR2, CR3, NEF, ARW, DNG, ORF, RW2, RAF…). Vídeos MP4, MOV, AVI, MKV, 3GP, MTS, WMV, WebM…
 
 ---
 
-## Instalación
+## Para desarrolladores
 
-### Linux (para probar)
+Aplicación de escritorio en Python 3.10+ con PySide6 (Qt). Componentes: PySide6 (interfaz y reproductor de vídeo), Pillow + pillow-heif (fotos y HEIC), rawpy (RAW), ExifRead y hachoir (fechas). No hace falta VLC ni FFmpeg aparte.
+
+### Ejecutar desde el código
+
+**Linux**
 ```bash
+git clone https://github.com/israelgarcia86/fotos-hada-del-bosque.git
+cd fotos-hada-del-bosque
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
 python run.py
 ```
 
-### Windows, opción A: programa ya hecho (no hace falta instalar nada)
-GitHub crea el `.exe` gratis (los repositorios públicos tienen GitHub Actions gratuito):
-
-1. Sube esta carpeta a un repositorio de GitHub, incluida la carpeta oculta `.github`.
-2. En el repositorio, entra en **Actions → «Crear programa para Windows» → Run workflow**.
-3. Cuando termine (unos 5 minutos), abre la ejecución y descarga **FotosDelHadaDelBosque-Windows** en *Artifacts*.
-   - Otra forma: publica una **Release** con una etiqueta nueva (por ejemplo `1.1.0`) y el `.zip` aparecerá en ella, descargable sin iniciar sesión.
-4. Descomprime el `.zip` donde quieras y ejecuta `FotosDelHadaDelBosque.exe`.
-
-> La primera vez, Windows SmartScreen puede avisar de que el programa no está firmado: pulsa **Más información → Ejecutar de todas formas**.
-
-### Windows, opción B: con Python
+**Windows con Python**
 1. Instala Python 3.12 desde <https://www.python.org/downloads/> y marca **«Add python.exe to PATH»**.
-2. Haz doble clic en **`Hada_del_bosque_Windows.bat`**. La primera vez instala lo necesario en una carpeta `.venv` (tarda unos minutos); las siguientes arranca directamente.
+2. Haz doble clic en **`Hada_del_bosque_Windows.bat`**. La primera vez instala lo necesario en una carpeta `.venv` (tarda unos minutos); las siguientes veces arranca directamente.
 
-Componentes que usa: PySide6 (interfaz y reproductor de vídeo), Pillow + pillow-heif (fotos y HEIC), rawpy (RAW), ExifRead y hachoir (fechas). Todos se instalan con `pip`; no hace falta VLC ni FFmpeg aparte.
+La opción `python run.py --selftest` comprueba que todos los componentes funcionan: HEIC, RAW, decodificación de vídeo e icono.
+
+### Publicar una versión nueva (crea el .exe de Windows)
+
+El flujo `.github/workflows/windows.yml` crea el ejecutable con PyInstaller en una máquina Windows de GitHub, gratis en repositorios públicos. Antes de publicarlo, ejecuta la comprobación `--selftest`.
+
+1. Sube los cambios a la rama `main`.
+2. Crea una **Release** con una etiqueta nueva (por ejemplo `1.2.0`): **Releases → Draft a new release → Choose a tag**.
+3. Unos 5 minutos después, el fichero `FotosDelHadaDelBosque-Windows.zip` aparece en la Release. El enlace de descarga de este README apunta siempre a la última versión.
+
+También se puede lanzar a mano desde **Actions → «Crear programa para Windows» → Run workflow**. En ese caso el zip queda en *Artifacts* (hay que iniciar sesión para descargarlo y caduca a los 90 días). Si se elige una etiqueta en «Use workflow from», el zip se añade a esa Release.
+
+### Estructura del código
+
+| Fichero | Contenido |
+|---|---|
+| `run.py` | punto de entrada |
+| `hada_del_bosque/app.py` | arranque, bienvenida, `--selftest` |
+| `hada_del_bosque/main_window.py` | ventana: paso 1 (carpetas) y paso 2 (fotos) |
+| `hada_del_bosque/dialogs.py` | escaneo, otra categoría, gestor de categorías, copia |
+| `hada_del_bosque/widgets.py` | visor de imagen y de vídeo, miniaturas, vista previa |
+| `hada_del_bosque/store.py` | estado en `hada_del_bosque.json` (rutas relativas, guardado atómico) |
+| `hada_del_bosque/dates.py` | fecha estimada (EXIF, vídeo, nombre del fichero) |
+| `hada_del_bosque/folders.py` | interpretar nombres de carpeta (año, mes, nombre) |
+| `hada_del_bosque/copier.py` | copia a `DESTINO/AAAA/<mes>/<categoría>/` |
+| `hada_del_bosque/media.py` | carga de imágenes (HEIC, RAW) y metadatos |
+| `hada_del_bosque/resources/` | icono del hada (SVG, PNG, ICO) |
